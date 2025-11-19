@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ student.name }}</h1>
+<p><strong>Roll:</strong> {{ student.roll_number }}</p>
+<p><strong>Average:</strong> {{ student.average() or 'N/A' }}</p>
+
+<h2>Grades</h2>
+{% if student.grades %}
+  <table class="table table-striped bg-white">
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>Score</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for g in student.grades %}
+      <tr>
+        <td>{{ g.subject }}</td>
+        <td>{{ g.score }}</td>
+        <td>
+          <form method="post" action="{{ url_for('delete_grade', grade_id=g.id) }}">
+            <button class="btn btn-sm btn-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% else %}
+  <p>No grades yet.</p>
+{% endif %}
+
+<h3>Add Grade</h3>
+<form method="post" action="{{ url_for('add_grade', student_id=student.id) }}" class="row g-2 mb-4">
+  <div class="col-md-4">
+    <input type="text" name="subject" class="form-control" placeholder="Subject" required>
+  </div>
+  <div class="col-md-4">
+    <input type="number" name="score" min="0" max="100" step="0.1"
+           class="form-control" placeholder="Score" required>
+  </div>
+  <div class="col-md-4">
+    <button class="btn btn-primary" type="submit">Add Grade</button>
+  </div>
+</form>
+
+<a class="btn btn-secondary" href="{{ url_for('edit_student', student_id=student.id) }}">Edit Student</a>
+<form method="post" action="{{ url_for('delete_student', student_id=student.id) }}" style="display:inline;">
+  <button class="btn btn-danger">Delete Student</button>
+</form>
+<a class="btn btn-link" href="{{ url_for('index') }}">Back</a>
+
+{% endblock %}
+     

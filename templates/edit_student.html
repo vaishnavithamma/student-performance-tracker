@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Edit Student</h1>
+
+<form method="post" class="row g-3 bg-white p-3 border rounded">
+  <div class="col-md-6">
+    <label>Name</label>
+    <input type="text" name="name" class="form-control" value="{{ student.name }}" required>
+  </div>
+
+  <div class="col-md-6">
+    <label>Roll Number</label>
+    <input type="text" name="roll_number" class="form-control" value="{{ student.roll_number }}" required>
+  </div>
+
+  <div class="col-12">
+    <button class="btn btn-primary">Save</button>
+    <a class="btn btn-link" href="{{ url_for('student_detail', student_id=student.id) }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
+

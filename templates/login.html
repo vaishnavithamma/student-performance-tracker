@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    body { background: #f4f6f9; }
+    .login-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+    }
+    .login-card {
+        width: 380px;
+        padding: 30px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    .login-title {
+        font-size: 28px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .btn-primary {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+    }
+    .small-link {
+        display: block;
+        margin-top: 12px;
+        text-align: center;
+        font-size: 14px;
+    }
+</style>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-title">Login</div>
+
+        <form method="POST">
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.username.label(class="form-label") }}
+                {{ form.username(class="form-control") }}
+            </div>
+
+            <div class="mb-3">
+                {{ form.password.label(class="form-label") }}
+                {{ form.password(class="form-control") }}
+            </div>
+
+            {{ form.submit(class="btn btn-primary") }}
+
+            <a href="{{ url_for('register') }}" class="small-link">Create an account</a>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
