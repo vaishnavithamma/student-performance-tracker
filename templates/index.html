@@ -1,83 +1,124 @@
-{% extends 'base.html' %}
-
+{% extends "base.html" %}
 {% block content %}
 
-<h1>Students</h1>
+<div class="page-title">Students</div>
 
-<form method="get" class="row g-2 mb-4">
-  <div class="col-auto">
-    <input name="q" class="form-control" placeholder="Search by name or roll" value="{{ request.args.get('q','') }}">
-  </div>
-  <div class="col-auto">
-    <select name="sort" class="form-select">
-      <option value="name" {% if request.args.get('sort')=='name' %}selected{% endif %}>Sort: Name</option>
-      <option value="avg" {% if request.args.get('sort')=='avg' %}selected{% endif %}>Sort: Average</option>
+<!-- Toolbar -->
+<div class="card-panel d-flex flex-column flex-md-row align-items-start gap-3">
+  <form method="get" class="d-flex flex-grow-1 gap-2 w-100">
+    <input name="q" class="form-control" placeholder="Search by name or roll"
+           value="{{ request.args.get('q','') }}">
+    <select name="sort" class="form-select" style="max-width:220px;">
+      <option value="name" {% if request.args.get('sort') != 'avg' %}selected{% endif %}>Sort: Name</option>
+      <option value="avg" {% if request.args.get('sort') == 'avg' %}selected{% endif %}>Sort: Highest Average</option>
     </select>
+    <button class="btn btn-primary">Apply</button>
+    <div class="ms-auto d-flex gap-2">
+      <a href="{{ url_for('add_student') }}" class="btn btn-primary">+ Add Student</a>
+      <a href="{{ url_for('export_csv') }}" class="btn btn-outline-secondary">Export CSV</a>
+    </div>
+  </form>
+</div>
+
+<!-- Table card -->
+<div class="card-panel">
+  <div class="table-responsive">
+    <table class="table table-borderless mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Roll</th>
+          <th>Average</th>
+          <th style="width:220px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr class="align-middle">
+          <td>{{ s.name }}</td>
+          <td>{{ s.roll_number }}</td>
+          <td>{{ s.average() if s.average() is not none else '-' }}</td>
+          <td>
+            <a class="btn btn-outline-primary btn-sm me-1" href="{{ url_for('student_detail', student_id=s.id) }}">View</a>
+            <a class="btn btn-outline-secondary btn-sm me-1" href="{{ url_for('edit_student', student_id=s.id) }}">Edit</a>
+
+            <form method="post" action="{{ url_for('delete_student', student_id=s.id) }}" style="display:inline;">
+              <button class="btn btn-danger btn-sm" onclick="return confirm('Delete this student?')">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <div class="col-auto">
-    <button class="btn btn-secondary">Apply</button>
+</div>
+
+<!-- Charts / stats -->
+<div class="card-panel">
+  <div class="d-flex flex-column flex-md-row gap-4">
+    <div class="flex-fill">
+      <h5 class="mb-3">Class Performance</h5>
+      <div class="chart-card">
+        <canvas id="classChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <div style="min-width:260px;">
+      <h5 class="mb-3">Quick stats</h5>
+      <div class="card-panel">
+        <p class="mb-1"><strong>Total students:</strong> {{ students|length }}</p>
+       <p class="mb-1"><strong>Average score (class):</strong>
+  {% set avgs = [] %}
+  {% for s in students %}
+      {% if s.average() is not none %}
+          {% set _ = avgs.append(s.average()) %}
+      {% endif %}
+  {% endfor %}
+
+  {% if avgs %}
+      {{ (avgs|sum / avgs|length) | round(2) }}
+  {% else %}
+      -
+  {% endif %}
+</p>
+
+
+        <a href="{{ url_for('export_csv') }}" class="btn btn-outline-secondary mt-3">Download CSV</a>
+      </div>
+    </div>
   </div>
-</form>
-
-{% if students %}
-  <table class="table table-bordered bg-white">
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Roll</th>
-        <th>Average</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in students %}
-      <tr>
-        <td>{{ s.name }}</td>
-        <td>{{ s.roll_number }}</td>
-        <td>{{ s.average() if s.average() != None else '--' }}</td>
-        <td>
-          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('student_detail', student_id=s.id) }}">View</a>
-          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('edit_student', student_id=s.id) }}">Edit</a>
-          <form method="post" action="{{ url_for('delete_student', student_id=s.id) }}" style="display:inline-block;">
-            <button class="btn btn-sm btn-danger" onclick="return confirm('Delete student?')">Delete</button>
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-
-  <h3 class="mt-4">Class Performance Chart</h3>
-  <canvas id="classChart" height="90"></canvas>
-
-{% else %}
-  <p>No students yet. <a href="{{ url_for('add_student') }}">Add one</a>.</p>
-{% endif %}
-
-{% endblock %}
+</div>
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 fetch("{{ url_for('class_stats') }}")
-  .then(res => res.json())
+  .then(r => r.json())
   .then(data => {
-    const labels = data.map(s => s.name);
-    const scores = data.map(s => s.average);
+    const names = data.map(d => d.name);
+    const avgs = data.map(d => d.average);
 
-    new Chart(document.getElementById('classChart'), {
+    const ctx = document.getElementById('classChart').getContext('2d');
+    new Chart(ctx, {
       type: 'bar',
       data: {
-        labels,
+        labels: names,
         datasets: [{
-          label: 'Average Score',
-          data: scores,
-          backgroundColor: 'rgba(54, 162, 235, 0.7)',
+          label: 'Average',
+          data: avgs,
+          borderRadius: 8,
+          barThickness: 22
         }]
       },
       options: {
-        scales: { y: { beginAtZero: true, max: 100 } }
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, max: 100 }
+        }
       }
     });
   });
 </script>
+{% endblock %}
+
 {% endblock %}

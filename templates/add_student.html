@@ -1,24 +1,25 @@
-
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% block content %}
 
-<h1>Add Student</h1>
+<div class="page-title">Add Student</div>
 
-<form method="post" class="row g-3 bg-white p-3 border rounded">
-  <div class="col-md-6">
-    <label>Name</label>
-    <input type="text" name="name" class="form-control" required>
-  </div>
+<div class="card-panel" style="max-width:720px;">
+  <form method="post" class="row g-3">
+    <div class="col-12">
+      <label class="form-label">Name</label>
+      <input name="name" class="form-control" placeholder="Full name" required>
+    </div>
 
-  <div class="col-md-6">
-    <label>Roll Number</label>
-    <input type="text" name="roll_number" class="form-control" required>
-  </div>
+    <div class="col-12">
+      <label class="form-label">Roll Number</label>
+      <input name="roll_number" class="form-control" placeholder="Roll number" required>
+    </div>
 
-  <div class="col-12">
-    <button class="btn btn-primary">Add Student</button>
-    <a class="btn btn-link" href="{{ url_for('index') }}">Cancel</a>
-  </div>
-</form>
+    <div class="col-12 d-flex gap-2">
+      <button class="btn btn-primary">Create</button>
+      <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">Cancel</a>
+    </div>
+  </form>
+</div>
 
 {% endblock %}

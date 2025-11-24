@@ -1,62 +1,31 @@
 {% extends "base.html" %}
 {% block content %}
 
-<style>
-    body { background: #f4f6f9; }
-    .register-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 80vh;
-    }
-    .register-card {
-        width: 380px;
-        padding: 30px;
-        border-radius: 12px;
-        background: #fff;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-    }
-    .register-title {
-        font-size: 28px;
-        font-weight: 600;
-        margin-bottom: 20px;
-        text-align: center;
-    }
-    .btn-success {
-        width: 100%;
-        padding: 10px;
-        border-radius: 8px;
-    }
-    .small-link {
-        display: block;
-        margin-top: 12px;
-        text-align: center;
-        font-size: 14px;
-    }
-</style>
+<div class="page-title">Create Account</div>
 
-<div class="register-wrapper">
-    <div class="register-card">
-        <div class="register-title">Create Account</div>
+<div class="card-panel" style="max-width:520px;">
+  <form method="POST" class="row g-3">
+    {{ form.hidden_tag() }}
 
-        <form method="POST">
-            {{ form.hidden_tag() }}
-
-            <div class="mb-3">
-                {{ form.username.label(class="form-label") }}
-                {{ form.username(class="form-control") }}
-            </div>
-
-            <div class="mb-3">
-                {{ form.password.label(class="form-label") }}
-                {{ form.password(class="form-control") }}
-            </div>
-
-            {{ form.submit(class="btn btn-success") }}
-
-            <a href="{{ url_for('login') }}" class="small-link">Already have an account? Login</a>
-        </form>
+    <div class="col-12">
+      {{ form.username.label(class="form-label") }}
+      {{ form.username(class="form-control") }}
     </div>
+
+    <div class="col-12">
+      {{ form.password.label(class="form-label") }}
+      {{ form.password(class="form-control") }}
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+      {{ form.submit(class="btn btn-primary") }}
+      <a class="btn btn-outline-secondary" href="{{ url_for('login') }}">Back to login</a>
+    </div>
+
+    <div class="col-12 text-muted small">
+      By creating an account you agree to the (demo) terms.
+    </div>
+  </form>
 </div>
 
 {% endblock %}

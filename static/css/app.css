@@ -1,0 +1,168 @@
+:root{
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --muted:#6b7280;
+  --accent:#0f1724;
+  --primary:#0b74b8;
+  --success:#1f8a4b;
+}
+
+body{ background:var(--bg); font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#111827; }
+
+/* Top bar */
+.topbar{ background: linear-gradient(180deg,#111827, #0f1724); color:#fff; padding:14px 18px; box-shadow:0 3px 12px rgba(2,6,23,0.3);}
+.brand{ color:#fff; font-weight:700; font-size:20px; text-decoration:none; }
+
+/* Flash */
+.flash-wrap { width:100%; margin-bottom:18px; }
+
+/* Card sections */
+.card-panel {
+  background:var(--card);
+  border-radius:12px;
+  padding:18px;
+  box-shadow:0 10px 30px rgba(15,23,42,0.06);
+  margin-bottom:20px;
+}
+
+/* Page heading */
+.page-title { font-size:30px; font-weight:700; margin-bottom:14px; }
+
+/* Toolbar */
+.toolbar { display:flex; gap:12px; margin-bottom:16px; align-items:center; }
+
+/* Table */
+.table-modern { border-collapse:collapse; width:100%; }
+.table-modern th { background:#f8fafc; font-weight:600; padding:12px; color:var(--muted); border-bottom:1px solid #eef2f6; text-align:left; }
+.table-modern td { padding:12px; border-bottom:1px solid #f1f5f9; }
+
+/* Buttons */
+.btn-sm { padding:6px 10px; border-radius:8px; }
+
+/* Chart container */
+.chart-card { padding:18px; border-radius:12px; background:var(--card); box-shadow:0 10px 30px rgba(15,23,42,0.04); }
+
+/* Responsive tweak */
+@media (max-width:720px){ .toolbar { flex-direction:column; align-items:stretch } .brand{ font-size:18px } .page-title{ font-size:24px } }
+/* GLOBAL PASTEL THEME ------------------------------------- */
+
+body {
+    background: linear-gradient(135deg, #eef5ff, #ffeef6);
+    min-height: 100vh;
+    color: #1a1a1a;
+}
+
+/* Frosted pastel cards */
+.card-panel, 
+.table-modern,
+.chart-card,
+.flash-wrap .alert {
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 20px;
+
+    box-shadow: 0px 10px 40px rgba(160, 200, 255, 0.25);
+    padding: 20px;
+}
+
+/* Pastel section headers */
+.page-title, 
+h1, h2, h3 {
+    font-weight: 700;
+    color: #274472;
+    margin-bottom: 18px;
+}
+
+/* Inputs */
+input, select {
+    border-radius: 12px !important;
+    background: rgba(255,255,255,0.85) !important;
+    border: 1px solid rgba(200,200,255,0.6) !important;
+    padding: 10px 14px !important;
+}
+
+input:focus {
+    border-color: #8acbff !important;
+    box-shadow: 0 0 0 3px rgba(160,220,255,0.4);
+}
+
+/* Buttons -------------------------------------------------- */
+
+.btn-primary, .btn-success {
+    background: linear-gradient(135deg, #4dbbff, #ff7ebe) !important;
+    border: none !important;
+    border-radius: 14px !important;
+    padding: 8px 18px;
+    font-weight: 600;
+    color: white !important;
+    box-shadow: 0px 6px 20px rgba(255,180,220,0.4);
+}
+
+.btn-primary:hover, .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0px 8px 26px rgba(255,180,220,0.45);
+}
+
+/* Delete button (keep red but pastel tone) */
+.btn-danger {
+    background: #ff6b6b !important;
+    border: none;
+    border-radius: 12px;
+    padding: 6px 14px;
+    box-shadow: 0px 4px 12px rgba(255,100,100,0.4);
+}
+
+.btn-danger:hover {
+    background: #ff4a4a !important;
+}
+
+/* View/Edit pastel buttons */
+.btn-outline-primary {
+    border-radius: 12px;
+    border-color: #88c8ff !important;
+    color: #4a9cff !important;
+}
+
+.btn-outline-primary:hover {
+    background: #dff0ff !important;
+}
+
+.btn-outline-secondary {
+    border-radius: 12px;
+    border-color: #b7b7c7 !important;
+}
+
+/* Table look ---------------------------------------------- */
+
+.table-modern th {
+    background: rgba(255,255,255,0.4);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(200,200,255,0.4);
+    font-weight: 600;
+    color: #4d4d7c;
+}
+
+.table-modern td {
+    background: rgba(255,255,255,0.3);
+    border-bottom: 1px solid rgba(230,230,255,0.5);
+}
+
+/* Chart container */
+.chart-card {
+    border-radius: 22px;
+}
+
+/* Navbar pastel glow -------------------------------------- */
+
+.topbar {
+    background: linear-gradient(135deg, #2b3a55, #445b7c);
+    box-shadow: 0px 3px 14px rgba(50,70,100,0.4);
+}
+
+.brand {
+    font-size: 23px;
+    font-weight: 700;
+}
