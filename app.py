@@ -1,26 +1,24 @@
+# ---------------------- IMPORTS ---------------------- #
 import os
 import csv
 from io import StringIO
-from flask import (
-    Flask, render_template, request, redirect,
-    url_for, flash, Response, jsonify
-)
+from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
+
 from flask_sqlalchemy import SQLAlchemy
 
-# Login system
 from flask_login import (
     LoginManager, UserMixin, login_user, login_required,
     logout_user, current_user
 )
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
-# Forms
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
 
 
-# ------------ CONFIG ---------------- #
+# ---------------------- CONFIG ---------------------- #
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "students.db")
@@ -30,54 +28,16 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
-
 db = SQLAlchemy(app)
 
-# Ensure DB + admin exists (required for Render)
-with app.app_context():
-    try:
-        db.create_all()
 
-        # Create default admin (only if none exist)
-        if not hasattr(db.metadata.tables, "user") or not db.session.query(db.Model).first():
-            print("Checking admin...")
-
-        if not db.session.query(db.Model).first():
-            admin = None
-            from sqlalchemy import text
-
-            user_exists = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user';")).fetchone()
-
-            if user_exists:
-                from sqlalchemy import select
-                exists = db.session.execute(select(db.Model)).fetchone()
-                if not exists:
-                    admin = None
-
-        # ensure at least one admin
-        from sqlalchemy import text
-        user_table_exists = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user';")).fetchone()
-
-        if user_table_exists:
-            existing_user = db.session.execute(text("SELECT * FROM user LIMIT 1;")).fetchone()
-            if not existing_user:
-                admin = User(username="admin", password_hash=generate_password_hash("admin123"))
-                db.session.add(admin)
-                db.session.commit()
-                print("👑 Admin account created: admin / admin123")
-
-        print("✔ Database initialized.")
-    except Exception as e:
-        print("❌ Database error:", e)
-
-
-# ------------ LOGIN MANAGER ---------------- #
+# ---------------------- LOGIN MANAGER ---------------------- #
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
 
-# ------------ MODELS ---------------- #
+# ---------------------- MODELS ---------------------- #
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -110,7 +70,7 @@ class Grade(db.Model):
     score = db.Column(db.Float, nullable=False)
 
 
-# ------------ FORMS ---------------- #
+# ---------------------- FORMS ---------------------- #
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(), Length(min=3)])
@@ -124,14 +84,28 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")
 
 
-# ------------ LOGIN LOADER ---------------- #
+# ---------------------- DATABASE INIT ---------------------- #
+
+with app.app_context():
+    db.create_all()
+
+    # Create default admin only if users table is empty
+    if not User.query.first():
+        admin = User(username="admin")
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+        print("👑 Default admin created -> username: admin | password: admin123")
+
+
+# ---------------------- LOGIN LOADER ---------------------- #
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ------------ ROUTES ---------------- #
+# ---------------------- ROUTES ---------------------- #
 
 @app.route("/")
 @login_required
@@ -150,11 +124,7 @@ def index():
     students = students_query.all()
 
     if sort == "avg":
-        students = sorted(
-            students,
-            key=lambda s: (s.average() is None, s.average() or 0),
-            reverse=True,
-        )
+        students = sorted(students, key=lambda s: (s.average() is None, s.average() or 0), reverse=True)
     else:
         students = sorted(students, key=lambda s: s.name.lower())
 
@@ -269,7 +239,7 @@ def delete_grade(grade_id):
     return redirect(url_for("student_detail", student_id=sid))
 
 
-# ------------ CSV EXPORT ---------------- #
+# ---------------------- EXPORT CSV ---------------------- #
 
 @app.route("/export/csv")
 @login_required
@@ -286,32 +256,26 @@ def export_csv():
         else:
             writer.writerow([s.name, s.roll_number, "", ""])
 
-    output = si.getvalue()
-
     return Response(
-        output,
+        si.getvalue(),
         mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=students.csv"},
+        headers={"Content-Disposition": "attachment; filename=students.csv"}
     )
 
 
-# ------------ API FOR CHARTS ---------------- #
+# ---------------------- CHART API ---------------------- #
 
 @app.route("/class-stats")
 @login_required
 def class_stats():
     students = Student.query.all()
-    data = [
-        {
-            "name": s.name,
-            "average": s.average() or 0
-        }
+    return jsonify([
+        {"name": s.name, "average": s.average() or 0}
         for s in students
-    ]
-    return jsonify(data)
+    ])
 
 
-# ------------ AUTH ---------------- #
+# ---------------------- AUTH ---------------------- #
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -319,14 +283,14 @@ def login():
         return redirect(url_for("index"))
 
     form = LoginForm()
+
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data.strip()).first()
         if user and user.check_password(form.password.data):
             login_user(user)
             flash("Logged in!", "success")
             return redirect(url_for("index"))
-        else:
-            flash("Invalid username or password", "danger")
+        flash("Invalid username or password", "danger")
 
     return render_template("login.html", form=form)
 
@@ -361,7 +325,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ------------ MAIN ---------------- #
+# ---------------------- RUN ---------------------- #
 
 if __name__ == "__main__":
     app.run(debug=True)
