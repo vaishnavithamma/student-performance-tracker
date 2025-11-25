@@ -1,24 +1,26 @@
-# ---------------------- IMPORTS ---------------------- #
 import os
 import csv
 from io import StringIO
-from flask import Flask, render_template, request, redirect, url_for, flash, Response, jsonify
-
+from flask import (
+    Flask, render_template, request, redirect,
+    url_for, flash, Response, jsonify
+)
 from flask_sqlalchemy import SQLAlchemy
 
+# ---- Login ----
 from flask_login import (
     LoginManager, UserMixin, login_user, login_required,
     logout_user, current_user
 )
-
 from werkzeug.security import generate_password_hash, check_password_hash
 
+# ---- Forms ----
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
 
 
-# ---------------------- CONFIG ---------------------- #
+# ---------------- CONFIG ---------------- #
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "students.db")
@@ -31,13 +33,13 @@ app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 db = SQLAlchemy(app)
 
 
-# ---------------------- LOGIN MANAGER ---------------------- #
+# ---------------- LOGIN MANAGER ---------------- #
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
 
-# ---------------------- MODELS ---------------------- #
+# ---------------- MODELS ---------------- #
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -58,9 +60,7 @@ class Student(db.Model):
     grades = db.relationship("Grade", backref="student", cascade="all, delete-orphan")
 
     def average(self):
-        if not self.grades:
-            return None
-        return round(sum(g.score for g in self.grades) / len(self.grades), 2)
+        return round(sum(g.score for g in self.grades) / len(self.grades), 2) if self.grades else None
 
 
 class Grade(db.Model):
@@ -70,7 +70,7 @@ class Grade(db.Model):
     score = db.Column(db.Float, nullable=False)
 
 
-# ---------------------- FORMS ---------------------- #
+# ---------------- FORMS ---------------- #
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(), Length(min=3)])
@@ -84,28 +84,27 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")
 
 
-# ---------------------- DATABASE INIT ---------------------- #
-
-with app.app_context():
-    db.create_all()
-
-    # Create default admin only if users table is empty
-    if not User.query.first():
-        admin = User(username="admin")
-        admin.set_password("admin123")
-        db.session.add(admin)
-        db.session.commit()
-        print("👑 Default admin created -> username: admin | password: admin123")
-
-
-# ---------------------- LOGIN LOADER ---------------------- #
+# ---------------- USER LOADER ---------------- #
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ---------------------- ROUTES ---------------------- #
+# ---------------- CREATE DB + DEFAULT ADMIN ---------------- #
+
+with app.app_context():
+    db.create_all()
+
+    if User.query.first() is None:
+        admin = User(username="admin")
+        admin.set_password("admin123")
+        db.session.add(admin)
+        db.session.commit()
+        print("👑 Default admin added (admin/admin123)")
+
+
+# ---------------- ROUTES ---------------- #
 
 @app.route("/")
 @login_required
@@ -148,8 +147,7 @@ def add_student():
 
         db.session.add(Student(name=name, roll_number=roll))
         db.session.commit()
-
-        flash("Student added.", "success")
+        flash("Student added!", "success")
         return redirect(url_for("index"))
 
     return render_template("add_student.html")
@@ -158,8 +156,7 @@ def add_student():
 @app.route("/student/<int:student_id>")
 @login_required
 def student_detail(student_id):
-    student = Student.query.get_or_404(student_id)
-    return render_template("student_detail.html", student=student)
+    return render_template("student_detail.html", student=Student.query.get_or_404(student_id))
 
 
 @app.route("/student/<int:student_id>/edit", methods=["GET", "POST"])
@@ -168,22 +165,21 @@ def edit_student(student_id):
     student = Student.query.get_or_404(student_id)
 
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
-        roll = request.form.get("roll_number", "").strip()
+        name = request.form.get("name").strip()
+        roll = request.form.get("roll_number").strip()
 
         if not name or not roll:
             flash("Name and roll number required.", "danger")
             return redirect(url_for("edit_student", student_id=student.id))
 
         if roll != student.roll_number and Student.query.filter_by(roll_number=roll).first():
-            flash("Roll number already taken.", "danger")
+            flash("Roll number already exists.", "danger")
             return redirect(url_for("edit_student", student_id=student.id))
 
         student.name = name
         student.roll_number = roll
         db.session.commit()
-
-        flash("Updated successfully.", "success")
+        flash("Updated!", "success")
         return redirect(url_for("student_detail", student_id=student.id))
 
     return render_template("edit_student.html", student=student)
@@ -192,10 +188,9 @@ def edit_student(student_id):
 @app.route("/student/<int:student_id>/delete", methods=["POST"])
 @login_required
 def delete_student(student_id):
-    student = Student.query.get_or_404(student_id)
-    db.session.delete(student)
+    db.session.delete(Student.query.get_or_404(student_id))
     db.session.commit()
-    flash("Student deleted.", "success")
+    flash("Deleted!", "success")
     return redirect(url_for("index"))
 
 
@@ -203,9 +198,8 @@ def delete_student(student_id):
 @login_required
 def add_grade(student_id):
     student = Student.query.get_or_404(student_id)
-
-    subject = request.form.get("subject", "").strip()
-    score = request.form.get("score", "").strip()
+    subject = request.form.get("subject").strip()
+    score = request.form.get("score").strip()
 
     if not subject or not score:
         flash("Subject and score required.", "danger")
@@ -213,18 +207,15 @@ def add_grade(student_id):
 
     try:
         score_val = float(score)
+        if not (0 <= score_val <= 100):
+            raise ValueError
     except ValueError:
-        flash("Score must be numeric.", "danger")
-        return redirect(url_for("student_detail", student_id=student.id))
-
-    if not (0 <= score_val <= 100):
-        flash("Score must be 0–100.", "danger")
+        flash("Score must be a number between 0 and 100.", "danger")
         return redirect(url_for("student_detail", student_id=student.id))
 
     db.session.add(Grade(student_id=student.id, subject=subject, score=score_val))
     db.session.commit()
-
-    flash("Grade added.", "success")
+    flash("Grade added!", "success")
     return redirect(url_for("student_detail", student_id=student.id))
 
 
@@ -235,11 +226,11 @@ def delete_grade(grade_id):
     sid = grade.student_id
     db.session.delete(grade)
     db.session.commit()
-    flash("Grade deleted.", "success")
+    flash("Grade removed.", "success")
     return redirect(url_for("student_detail", student_id=sid))
 
 
-# ---------------------- EXPORT CSV ---------------------- #
+# ---------------- CSV EXPORT ---------------- #
 
 @app.route("/export/csv")
 @login_required
@@ -248,34 +239,29 @@ def export_csv():
     writer = csv.writer(si)
     writer.writerow(["Name", "Roll", "Subject", "Score"])
 
-    students = Student.query.order_by(Student.name).all()
-    for s in students:
+    for s in Student.query.order_by(Student.name).all():
         if s.grades:
             for g in s.grades:
                 writer.writerow([s.name, s.roll_number, g.subject, g.score])
         else:
             writer.writerow([s.name, s.roll_number, "", ""])
 
-    return Response(
-        si.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=students.csv"}
-    )
+    return Response(si.getvalue(), mimetype="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=students.csv"})
 
 
-# ---------------------- CHART API ---------------------- #
+# ---------------- CHART API ---------------- #
 
 @app.route("/class-stats")
 @login_required
 def class_stats():
-    students = Student.query.all()
     return jsonify([
         {"name": s.name, "average": s.average() or 0}
-        for s in students
+        for s in Student.query.all()
     ])
 
 
-# ---------------------- AUTH ---------------------- #
+# ---------------- AUTH ---------------- #
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -283,12 +269,10 @@ def login():
         return redirect(url_for("index"))
 
     form = LoginForm()
-
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data.strip()).first()
         if user and user.check_password(form.password.data):
             login_user(user)
-            flash("Logged in!", "success")
             return redirect(url_for("index"))
         flash("Invalid username or password", "danger")
 
@@ -311,7 +295,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        flash("Account created. Please log in.", "success")
+        flash("Account created! Please login.", "success")
         return redirect(url_for("login"))
 
     return render_template("register.html", form=form)
@@ -321,11 +305,11 @@ def register():
 @login_required
 def logout():
     logout_user()
-    flash("Logged out successfully.", "success")
+    flash("Logged out!", "success")
     return redirect(url_for("login"))
 
 
-# ---------------------- RUN ---------------------- #
+# ---------------- MAIN ---------------- #
 
 if __name__ == "__main__":
     app.run(debug=True)
