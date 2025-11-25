@@ -1,4 +1,3 @@
-# app.py
 import os
 import csv
 from io import StringIO
@@ -21,6 +20,8 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
 
 
+# ------------ CONFIG ---------------- #
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "students.db")
 
@@ -29,17 +30,54 @@ app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
+
 db = SQLAlchemy(app)
+
+# Ensure DB + admin exists (required for Render)
 with app.app_context():
-    db.create_all()
+    try:
+        db.create_all()
+
+        # Create default admin (only if none exist)
+        if not hasattr(db.metadata.tables, "user") or not db.session.query(db.Model).first():
+            print("Checking admin...")
+
+        if not db.session.query(db.Model).first():
+            admin = None
+            from sqlalchemy import text
+
+            user_exists = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user';")).fetchone()
+
+            if user_exists:
+                from sqlalchemy import select
+                exists = db.session.execute(select(db.Model)).fetchone()
+                if not exists:
+                    admin = None
+
+        # ensure at least one admin
+        from sqlalchemy import text
+        user_table_exists = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='user';")).fetchone()
+
+        if user_table_exists:
+            existing_user = db.session.execute(text("SELECT * FROM user LIMIT 1;")).fetchone()
+            if not existing_user:
+                admin = User(username="admin", password_hash=generate_password_hash("admin123"))
+                db.session.add(admin)
+                db.session.commit()
+                print("👑 Admin account created: admin / admin123")
+
+        print("✔ Database initialized.")
+    except Exception as e:
+        print("❌ Database error:", e)
 
 
-# ---------------- LOGIN MANAGER ---------------- #
+# ------------ LOGIN MANAGER ---------------- #
 
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
-# ---------------- MODELS ---------------- #
+
+# ------------ MODELS ---------------- #
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -72,7 +110,7 @@ class Grade(db.Model):
     score = db.Column(db.Float, nullable=False)
 
 
-# ---------------- FORMS ---------------- #
+# ------------ FORMS ---------------- #
 
 class LoginForm(FlaskForm):
     username = StringField("Username", validators=[DataRequired(), Length(min=3)])
@@ -86,14 +124,14 @@ class RegisterForm(FlaskForm):
     submit = SubmitField("Register")
 
 
-# ---------------- LOGIN LOADER ---------------- #
+# ------------ LOGIN LOADER ---------------- #
 
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-# ---------------- ROUTES ---------------- #
+# ------------ ROUTES ---------------- #
 
 @app.route("/")
 @login_required
@@ -111,7 +149,6 @@ def index():
 
     students = students_query.all()
 
-    # Sort by average
     if sort == "avg":
         students = sorted(
             students,
@@ -168,7 +205,6 @@ def edit_student(student_id):
             flash("Name and roll number required.", "danger")
             return redirect(url_for("edit_student", student_id=student.id))
 
-        # Roll uniqueness check
         if roll != student.roll_number and Student.query.filter_by(roll_number=roll).first():
             flash("Roll number already taken.", "danger")
             return redirect(url_for("edit_student", student_id=student.id))
@@ -233,7 +269,7 @@ def delete_grade(grade_id):
     return redirect(url_for("student_detail", student_id=sid))
 
 
-# ---------------- CSV EXPORT ---------------- #
+# ------------ CSV EXPORT ---------------- #
 
 @app.route("/export/csv")
 @login_required
@@ -259,7 +295,7 @@ def export_csv():
     )
 
 
-# ---------------- CHART API ---------------- #
+# ------------ API FOR CHARTS ---------------- #
 
 @app.route("/class-stats")
 @login_required
@@ -275,7 +311,7 @@ def class_stats():
     return jsonify(data)
 
 
-# ---------------- AUTH ---------------- #
+# ------------ AUTH ---------------- #
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -325,12 +361,7 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ---------------- MAIN ---------------- #
+# ------------ MAIN ---------------- #
 
 if __name__ == "__main__":
-    if not os.path.exists(DB_PATH):
-        with app.app_context():
-            db.create_all()
-            print("Database created at", DB_PATH)
-
     app.run(debug=True)
